@@ -1,3 +1,4 @@
+# Optional demo: PyTorch3D mesh rendering (variant 2). Run from repo root.
 import os
 import sys
 import time
@@ -76,11 +77,11 @@ def create_pose_tracker(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Master's thesis demo code.")
+    parser = argparse.ArgumentParser(description="Fast-HaMeR demo with PyTorch3D (variant 2).")
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="_DATA/hamer_ckpts/checkpoints/hamer.ckpt",
+        default=None,
         help="Path to pretrained model checkpoint",
     )
     parser.add_argument(
@@ -109,11 +110,12 @@ def main():
     )
 
     args = parser.parse_args()
+    checkpoint = args.checkpoint or DEFAULT_CHECKPOINT
 
     if args.efficient_hamer:
-        model, model_cfg = load_efficient_hamer(args.checkpoint)
+        model, model_cfg = load_efficient_hamer(checkpoint)
     else:
-        model, model_cfg = load_hamer(args.checkpoint, init_renderer=False)
+        model, model_cfg = load_hamer(checkpoint, init_renderer=False)
 
     device = (
         torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")

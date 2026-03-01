@@ -7,7 +7,7 @@ FREIHAND-VAL:
 HO3D-VAL:
     TYPE: ImageDataset
     DATASET_FILE: hamer_evaluation_data/ho3d_val.npz
-    IMG_DIR: /netscratch/jillani/datasets/HO3D_v2/evaluation/
+    IMG_DIR: hamer_evaluation_data/ho3d/
     KEYPOINT_LIST: [0] # Dummy
 
 EGO4D-TEST-ALL:

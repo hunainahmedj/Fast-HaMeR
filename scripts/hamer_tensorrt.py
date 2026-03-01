@@ -1,12 +1,10 @@
+# Optional: Compile HaMeR backbone with TensorRT. Run from repo root.
 import torch
 import torch_tensorrt
 
 from hamer.models import load_hamer, DEFAULT_CHECKPOINT
 
-
-model, model_cfg = load_hamer(
-    "/home/jillani/datasets/hamer_stuff/_DATA/hamer_ckpts/checkpoints/hamer.ckpt"
-)
+model, model_cfg = load_hamer(DEFAULT_CHECKPOINT)
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 model = model.to(device)

@@ -65,9 +65,6 @@ def load_hamer(checkpoint_path=DEFAULT_CHECKPOINT, init_renderer: bool = True):
     return model, model_cfg
 
 
-DEFAULT_CHECKPOINT = f"{CACHE_DIR_HAMER}/hamer_ckpts/checkpoints/hamer.ckpt"
-
-
 def load_efficient_hamer(checkpoint_path=DEFAULT_CHECKPOINT):
     from pathlib import Path
     from ..configs import get_config

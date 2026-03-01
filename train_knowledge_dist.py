@@ -33,7 +33,7 @@ signal.signal(signal.SIGUSR1, signal.SIG_DFL)
 
 # For KD
 from hamer.models.efficient_hamer import EfficientHAMER
-from hamer.models import load_hamer, load_efficient_hamer
+from hamer.models import load_hamer, load_efficient_hamer, DEFAULT_CHECKPOINT
 
 log = get_pylogger(__name__)
 
@@ -62,10 +62,9 @@ def train(cfg: DictConfig) -> Tuple[dict, dict]:
     # Setup training and validation datasets
     datamodule = HAMERDataModule(cfg, dataset_cfg)
 
-    # Load the teacher model
-    hamer_model, hamer_model_cfg = load_hamer(
-        "/netscratch/jillani/_DATA/hamer_ckpts/checkpoints/hamer.ckpt"
-    )
+    # Load the teacher model (set TEACHER_CKPT env var to override default)
+    teacher_ckpt = os.environ.get("TEACHER_CKPT", DEFAULT_CHECKPOINT)
+    hamer_model, hamer_model_cfg = load_hamer(teacher_ckpt)
 
     # load the student model (pass the teacher model as an argument)
     model = EfficientHAMER(cfg, hamer_model)

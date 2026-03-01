@@ -1,3 +1,5 @@
+# Optional demo: whole-body pose tracker + HaMeR with PyTorch3D mesh rendering.
+# Run from repo root: python scripts/demo_pytorch3d.py [--checkpoint PATH] [--efficient_hamer]
 import os
 import sys
 import time
@@ -76,12 +78,12 @@ def create_pose_tracker(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Master's thesis demo code.")
+    parser = argparse.ArgumentParser(description="Fast-HaMeR demo with PyTorch3D rendering.")
     parser.add_argument(
         "--checkpoint",
         type=str,
-        default="_DATA/hamer_ckpts/checkpoints/hamer.ckpt",
-        help="Path to pretrained model checkpoint",
+        default=None,
+        help="Path to pretrained model checkpoint (default: _DATA/hamer_ckpts/checkpoints/hamer.ckpt)",
     )
     parser.add_argument(
         "--efficient_hamer",
@@ -109,11 +111,12 @@ def main():
     )
 
     args = parser.parse_args()
+    checkpoint = args.checkpoint or DEFAULT_CHECKPOINT
 
     if args.efficient_hamer:
-        model, model_cfg = load_efficient_hamer(args.checkpoint)
+        model, model_cfg = load_efficient_hamer(checkpoint)
     else:
-        model, model_cfg = load_hamer(args.checkpoint, init_renderer=False)
+        model, model_cfg = load_hamer(checkpoint, init_renderer=False)
 
     device = (
         torch.device("cuda:0") if torch.cuda.is_available() else torch.device("cpu")
@@ -249,15 +252,6 @@ def main():
                         .numpy()
                     )
 
-                    # Render the result
-                    renderer = MeshPyTorch3DRenderer(
-                        model_cfg,
-                        model.mano.faces,
-                        device,
-                        render_res=img_size[0],
-                        focal_length=scaled_focal_length,
-                    )
-
                     batch_size = batch["img"].shape[0]
                     for n in range(batch_size):
                         # Get filename from path img_path
@@ -275,6 +269,15 @@ def main():
                         all_verts.append(verts)
                         all_cam_t.append(cam_t)
                         all_right.append(is_right)
+
+                    # Render the result
+                    renderer = MeshPyTorch3DRenderer(
+                        model_cfg,
+                        model.mano.faces,
+                        device,
+                        render_res=img_size[0],
+                        focal_length=scaled_focal_length,
+                    )
 
                     # Render front view
                     if len(all_verts) > 0:

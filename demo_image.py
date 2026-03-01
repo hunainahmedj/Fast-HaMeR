@@ -77,7 +77,7 @@ def create_pose_tracker(
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Master's thesis demo code.")
+    parser = argparse.ArgumentParser(description="Fast-HaMeR demo: hand mesh recovery from a single image.")
     parser.add_argument(
         "--checkpoint",
         type=str,

@@ -1,0 +1,37 @@
+# Data and checkpoints
+_DATA/
+hamer_training_data/
+hamer_evaluation_data/
+logs/
+results/
+demo_out/
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# Model weights (large binaries)
+*.ckpt
+*.pth
+*.pt
+*.sqsh
+
+# Environment and IDE
+.env
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Optional: paper PDF (uncomment if you host it elsewhere)
+# *.pdf

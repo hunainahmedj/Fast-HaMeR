@@ -39,4 +39,5 @@ DEX-TRAIN:
     URLS: /ds-av/public_datasets/hamer_training_data/wds/dex-train/{000000..000406}.tar
     epoch_size: 406_888
 FREIHAND-MOCAP:
-    DATASET_FILE: /netscratch/jillani/datasets/hamer_training_data/hamer_training_data/freihand_mocap.npz
+    # Place freihand_mocap.npz in hamer_training_data/ or set path in your override
+    DATASET_FILE: hamer_training_data/freihand_mocap.npz

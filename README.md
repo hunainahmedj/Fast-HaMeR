@@ -1,120 +1,160 @@
-# HaMeR: Hand Mesh Recovery
-Code repository for the paper:
-**Reconstructing Hands in 3D with Transformers**
+# Fast-HaMeR: Boosting Hand Mesh Reconstruction using Knowledge Distillation
 
-[Georgios Pavlakos](https://geopavlakos.github.io/), [Dandan Shan](https://ddshan.github.io/), [Ilija Radosavovic](https://people.eecs.berkeley.edu/~ilija/), [Angjoo Kanazawa](https://people.eecs.berkeley.edu/~kanazawa/), [David Fouhey](https://cs.nyu.edu/~fouhey/), [Jitendra Malik](http://people.eecs.berkeley.edu/~malik/)
+This repository contains the code for the paper **Fast-HaMeR: Boosting Hand Mesh Reconstruction using Knowledge Distillation**. We accelerate 3D hand mesh reconstruction by:
 
-[![arXiv](https://img.shields.io/badge/arXiv-2312.05251-00ff00.svg)](https://arxiv.org/pdf/2312.05251.pdf)  [![Website shields.io](https://img.shields.io/website-up-down-green-red/http/shields.io.svg)](https://geopavlakos.github.io/hamer/)     [![Open In Colab](https://colab.research.google.com/assets/colab-badge.svg)](https://colab.research.google.com/drive/1rQbQzegFWGVOm1n1d-S6koOWDo7F2ucu?usp=sharing)  [![Hugging Face Spaces](https://img.shields.io/badge/%F0%9F%A4%97%20Hugging%20Face-Spaces-blue)](https://huggingface.co/spaces/geopavlakos/HaMeR)
+1. **Replacing the HaMeR ViT-H backbone** with lightweight alternatives: MobileNet, MobileViT, ConvNeXt, and ResNet.
+2. **Training student models with knowledge distillation** using three strategies: **output-level**, **feature-level**, and **combined** (hybrid of both).
+
+Our best configurations reach ~35% of the original model size, **1.5× faster inference**, with a minimal accuracy difference of **0.4 mm** on HO3D-v2. The approach is suitable for real-time use on resource-constrained devices (e.g. headsets, smartphones).
+
+Fast-HaMeR builds on [HaMeR](https://geopavlakos.github.io/hamer/) (Pavlakos et al., 2024). The paper PDF is available in the [docs/](docs/) folder.
 
 ![teaser](assets/teaser.jpg)
 
-## News
-
-- [2024/06] HaMeR received the 2nd place award in the Ego-Pose Hands task of the Ego-Exo4D Challenge! Please check the [validation report](https://www.cs.utexas.edu/~pavlakos/hamer/resources/egoexo4d_challenge.pdf).
-- [2024/05] We have released the evaluation pipeline!
-- [2024/05] We have released the HInt dataset annotations! Please check [here](https://github.com/ddshan/hint).
-- [2023/12] Original release!
-
 ## Installation
-First you need to clone the repo:
-```
-git clone --recursive https://github.com/geopavlakos/hamer.git
-cd hamer
-```
 
-We recommend creating a virtual environment for HaMeR. You can use venv:
+Clone this repository (and submodules if any):
+
 ```bash
-python3.10 -m venv .hamer
-source .hamer/bin/activate
+git clone --recursive https://github.com/hunainahmedj/Fast-HaMeR.git
+cd Fast-HaMeR
 ```
 
-or alternatively conda:
+Create a virtual environment (venv or conda):
+
 ```bash
-conda create --name hamer python=3.10
-conda activate hamer
+python3.10 -m venv .venv
+source .venv/bin/activate   # or: conda create -n fast-hamer python=3.10 && conda activate fast-hamer
 ```
 
-Then, you can install the rest of the dependencies. This is for CUDA 11.7, but you can adapt accordingly:
+Install dependencies (CUDA 11.7 example; adjust for your driver):
+
 ```bash
 pip install torch torchvision --index-url https://download.pytorch.org/whl/cu117
 pip install -e .[all]
 pip install -v -e third-party/ViTPose
 ```
 
-You also need to download the trained models:
+Optional: use `project_dependencies.txt` as a pinned reference for the full environment.
+
+Download demo data and place the MANO model:
+
 ```bash
 bash fetch_demo_data.sh
 ```
 
-Besides these files, you also need to download the MANO model. Please visit the [MANO website](https://mano.is.tue.mpg.de) and register to get access to the downloads section.  We only require the right hand model. You need to put `MANO_RIGHT.pkl` under the `_DATA/data/mano` folder.
+Place the right-hand MANO model from the [MANO website](https://mano.is.tue.mpg.de) as `_DATA/data/mano/MANO_RIGHT.pkl`.
 
-### Docker Compose
+### Docker
 
-If you wish to use HaMeR with Docker, you can use the following command:
-
-```
+```bash
 docker compose -f ./docker/docker-compose.yml up -d
-```
-
-After the image is built successfully, enter the container and run the steps as above:
-
-```
 docker compose -f ./docker/docker-compose.yml exec hamer-dev /bin/bash
+# then run fetch_demo_data.sh and MANO setup as above
 ```
 
-Continue with the installation steps:
+## Project structure
 
-```bash
-bash fetch_demo_data.sh
-```
+| Entry point | Description |
+|------------|-------------|
+| `train.py` | Baseline HaMeR-style training (ViT backbone). |
+| `train_knowledge_dist.py` | Knowledge distillation training (student backbones + KD). |
+| `eval.py` | Evaluation on FreiHAND, HO3D, HInt, etc. |
+| `demo.py` | Demo on an image folder. |
+| `demo_image.py` | Single-image demo. |
 
-## Demo
-```bash
-python demo.py \
-    --img_folder example_data --out_folder demo_out \
-    --batch_size=48 --side_view --save_mesh --full_frame
-```
-
-## HInt Dataset
-We have released the annotations for the HInt dataset. Please follow the instructions [here](https://github.com/ddshan/hint)
+Configs: `hamer/configs_hydra/` (Hydra: experiments, trainer, paths, data) and `hamer/configs/` (YACS: datasets, eval). Data and log paths can be overridden via `hamer/configs_hydra/paths/default.yaml` and `hamer/configs/datasets_eval.yaml`.
 
 ## Training
-First, download the training data to `./hamer_training_data/` by running:
-```
-bash fetch_training_data.sh
-```
 
-Then you can start training using the following command:
-```
+### Baseline (HaMeR-style)
+
+Train the full ViT-based model:
+
+```bash
 python train.py exp_name=hamer data=mix_all experiment=hamer_vit_transformer trainer=gpu launcher=local
 ```
-Checkpoints and logs will be saved to `./logs/`.
 
-## Evaluation
-Download the [evaluation metadata](https://www.dropbox.com/scl/fi/7ip2vnnu355e2kqbyn1bc/hamer_evaluation_data.tar.gz?rlkey=nb4x10uc8mj2qlfq934t5mdlh) to `./hamer_evaluation_data/`. Additionally, download the FreiHAND, HO-3D, and HInt dataset images and update the corresponding paths in  `hamer/configs/datasets_eval.yaml`.
+Checkpoints and logs are written under `./logs/` (configurable in `hamer/configs_hydra/paths/default.yaml`).
 
-Run evaluation on multiple datasets as follows, results are stored in `results/eval_regression.csv`. 
+### Knowledge distillation
+
+Download training data and start KD training:
+
 ```bash
-python eval.py --dataset 'FREIHAND-VAL,HO3D-VAL,NEWDAYS-TEST-ALL,NEWDAYS-TEST-VIS,NEWDAYS-TEST-OCC,EPICK-TEST-ALL,EPICK-TEST-VIS,EPICK-TEST-OCC,EGO4D-TEST-ALL,EGO4D-TEST-VIS,EGO4D-TEST-OCC'
+bash fetch_training_data.sh
+./train.sh MY_EXP_NAME mobilenet_large_kd_full
 ```
 
-Results for HInt are stored in `results/eval_regression.csv`. For [FreiHAND](https://github.com/lmb-freiburg/freihand) and [HO-3D](https://codalab.lisn.upsaclay.fr/competitions/4318) you get as output a `.json` file that can be used for evaluation using their corresponding evaluation processes.
+- `MY_EXP_NAME`: experiment name (used for log/checkpoint paths).
+- Second argument is the **experiment config** name under `hamer/configs_hydra/experiment/`.
+
+Available experiment configs include backbone variants (e.g. `resnet_50`, `mobilenet_large`, `convnext_large`, `mobilevit_small`) and KD variants matching the paper:
+
+- `*_kd_outputs` – **output-level** distillation (student matches teacher predictions).
+- `*_kd_features` – **feature-level** distillation (student features match teacher features).
+- `*_kd_full` – **combined** distillation (output + feature level).
+
+The teacher checkpoint is taken from the default HaMeR checkpoint (after `fetch_demo_data.sh`). Override with the `TEACHER_CKPT` environment variable if needed.
+
+## Evaluation
+
+1. Download [evaluation metadata](https://www.dropbox.com/scl/fi/7ip2vnnu355e2kqbyn1bc/hamer_evaluation_data.tar.gz?rlkey=nb4x10uc8mj2qlfq934t5mdlh) into `./hamer_evaluation_data/`.
+2. Download FreiHAND, HO-3D, and HInt images and set the paths in `hamer/configs/datasets_eval.yaml` (e.g. `IMG_DIR` for each dataset).
+3. Run evaluation:
+
+```bash
+# Direct call with checkpoint path
+python eval.py --dataset 'HO3D-VAL' --checkpoint path/to/checkpoint.ckpt --efficient_hamer --results_folder results/my_exp --metrics_folder results/
+
+# Or use eval.sh: ./eval.sh EXPERIMENT_NAME [CHECKPOINT_PATH]
+# If CHECKPOINT_PATH is omitted, uses ./logs/train/runs/EXPERIMENT_NAME/checkpoints/last.ckpt
+./eval.sh my_kd_run
+./eval.sh my_kd_run /path/to/custom.ckpt
+```
+
+Results are written to `results/` and (for FreiHAND/HO3D) as `.json` for their official evaluation.
+
+## Demo
+
+**Image folder:**
+
+```bash
+python demo.py --img_folder example_data --out_folder demo_out --batch_size=48 --side_view --save_mesh --full_frame
+```
+
+**Single image:**
+
+```bash
+python demo_image.py --img path/to/image.jpg --out_folder demo_out
+```
+
+To use an efficient (student) checkpoint, pass `--checkpoint path/to/student.ckpt`. For student models, the eval/demo code uses the efficient loader when appropriate (e.g. `eval.py --efficient_hamer`).
+
+Optional demos (PyTorch3D rendering, TensorRT, RTMPose) are under `scripts/`; see `scripts/README.md`.
+
+## Config and data paths
+
+- **Log and output dirs:** `hamer/configs_hydra/paths/default.yaml` (e.g. `log_dir`).
+- **MANO and default experiment paths:** `hamer/configs_hydra/experiment/default.yaml` (e.g. `MANO.DATA_DIR`).
+- **Eval dataset image dirs:** `hamer/configs/datasets_eval.yaml` (set `IMG_DIR` for each dataset).
+- **Training webdataset tars and mocap:** `hamer/configs/datasets_tar.yaml`. Place `freihand_mocap.npz` as indicated (e.g. under `hamer_training_data/`) or override the path.
+- **ViT pretrained weights:** In `hamer/configs_hydra/experiment/hamer_vit_transformer*.yaml`, set `PRETRAINED_WEIGHTS` to your path (e.g. `_DATA/vitpose_backbone.pth`) after downloading.
+
+## HInt dataset
+
+HInt annotations are available from the [HInt repository](https://github.com/ddshan/hint). Use them with the eval paths above as needed.
 
 ## Acknowledgements
-Parts of the code are taken or adapted from the following repos:
-- [4DHumans](https://github.com/shubham-goel/4D-Humans)
-- [SLAHMR](https://github.com/vye16/slahmr)
-- [ProHMR](https://github.com/nkolot/ProHMR)
-- [SPIN](https://github.com/nkolot/SPIN)
-- [SMPLify-X](https://github.com/vchoutas/smplify-x)
-- [HMR](https://github.com/akanazawa/hmr)
-- [ViTPose](https://github.com/ViTAE-Transformer/ViTPose)
-- [Detectron2](https://github.com/facebookresearch/detectron2)
 
-Additionally, we thank [StabilityAI](https://stability.ai/) for a generous compute grant that enabled this work.
+This work is based on [HaMeR](https://geopavlakos.github.io/hamer/). Parts of the code are taken or adapted from:
+
+- [HaMeR](https://github.com/geopavlakos/hamer) (Pavlakos et al.)
+- [4DHumans](https://github.com/shubham-goel/4D-Humans), [SLAHMR](https://github.com/vye16/slahmr), [ProHMR](https://github.com/nkolot/ProHMR), [SPIN](https://github.com/nkolot/SPIN), [SMPLify-X](https://github.com/vchoutas/smplify-x), [HMR](https://github.com/akanazawa/hmr), [ViTPose](https://github.com/ViTAE-Transformer/ViTPose), [Detectron2](https://github.com/facebookresearch/detectron2)
 
 ## Citing
-If you find this code useful for your research, please consider citing the following paper:
+
+If you use this code or build on HaMeR, please cite the original HaMeR paper:
 
 ```bibtex
 @inproceedings{pavlakos2024reconstructing,
@@ -124,3 +164,16 @@ If you find this code useful for your research, please consider citing the follo
     year={2024}
 }
 ```
+
+If you use Fast-HaMeR, please cite our paper:
+
+```bibtex
+@article{jillani2025fasthamer,
+  title={Fast-{HaMeR}: Boosting Hand Mesh Reconstruction using Knowledge Distillation},
+  author={Jillani, Hunain Ahmed and Aboukhadra, Ahmed Tawfik and Elhayek, Ahmed and Malik, Jameel and Robertini, Nadia and Stricker, Didier},
+  journal={...},
+  year={2025}
+}
+```
+
+(Update `journal` with the actual venue when published. The paper PDF is in [docs/](docs/).)
