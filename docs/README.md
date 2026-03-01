@@ -4,4 +4,4 @@
 
 **Authors:** Hunain Ahmed Jillani, Ahmed Tawfik Aboukhadra, Ahmed Elhayek, Jameel Malik, Nadia Robertini, Didier Stricker  
 
-The paper is available as `16578_Fast-HaMeR_CR_Updated.pdf` in this folder (or in the repository root).
+The paper is available as [Fast-HaMeR.pdf](Fast-HaMeR.pdf) in this folder.
